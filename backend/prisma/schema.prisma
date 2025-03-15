@@ -13,20 +13,23 @@ datasource db {
 enum Role {
   ADMIN
   MODERATOR
+  TEACHER
   STUDENT
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(STUDENT)
-  firstName String
-  lastName  String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  student   Student? // Optional relation to Student model
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  role          Role           @default(STUDENT)
+  firstName     String
+  lastName      String
+  isActive      Boolean        @default(true)
+  tokenVersion  Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  refreshTokens RefreshToken[]
+  student       Student?       // Optional relation to Student model
 }
 
 model Student {
@@ -40,4 +43,17 @@ model Student {
   enrollmentDate DateTime @default(now())
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model RefreshToken {
+  id          String    @id @default(uuid())
+  token       String    @unique
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  revoked     Boolean   @default(false)
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  ipAddress   String?
+  userAgent   String?
 }

@@ -1,0 +1,1 @@
+- don't change mysql database connection we have in .env which is correct.
