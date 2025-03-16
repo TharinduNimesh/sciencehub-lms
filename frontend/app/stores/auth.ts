@@ -1,39 +1,50 @@
 import { defineStore } from 'pinia'
-
-interface User {
-  id: string
-  name: string
-  email: string
-  role: 'admin' | 'moderator' | 'student'
-}
-
-// Default admin user
-const defaultUser: User = {
-  id: '1',
-  name: 'Admin User',
-  email: 'admin@sciencehub.com',
-  role: 'admin'
-}
+import type { AuthState, SignInCredentials, AuthResponse } from './types/auth.types'
 
 export const useAuthStore = defineStore('auth', {
-  state: () => ({
-    user: defaultUser as User | null,
-    isAuthenticated: true
-  }),
-  
-  actions: {
-    setUser(user: User) {
-      this.user = user
-      this.isAuthenticated = true
+    state: (): AuthState => ({
+        user: null,
+        accessToken: null,
+        isAuthenticated: false
+    }),
+
+    actions: {
+        async signIn(credentials: SignInCredentials) {
+            const config = useRuntimeConfig()
+            try {
+                const response = await $fetch<AuthResponse>(`${config.public.apiBaseUrl}/api/auth/sign-in`, {
+                    method: 'POST',
+                    body: credentials,
+                    credentials: 'include'
+                })
+
+                if (response.success && response.user && response.accessToken) {
+                    this.user = response.user
+                    this.accessToken = response.accessToken
+                    this.isAuthenticated = true
+                    return { success: true }
+                }
+
+                return { 
+                    success: false, 
+                    error: response.error || 'Authentication failed' 
+                }
+            } catch (error: any) {
+                const errorMessage = error.data?.error || 'Authentication failed'
+                return { 
+                    success: false, 
+                    error: errorMessage,
+                    code: error.data?.code 
+                }
+            }
+        },
+
+        clearAuth() {
+            this.user = null
+            this.accessToken = null
+            this.isAuthenticated = false
+        }
     },
 
-    logout() {
-      this.user = null
-      this.isAuthenticated = false
-    },
-
-    getCurrentUserRole(): 'admin' | 'moderator' | 'student' | null {
-      return this.user?.role || null
-    }
-  }
+    persist: true
 })

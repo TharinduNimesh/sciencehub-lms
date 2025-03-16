@@ -3,20 +3,46 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import type { AuthResult } from '@/types/auth.types';
 import { auditLog, errorLog } from '@/lib/logger.lib';
+import { rateLimiterService } from './rate-limiter.service';
 
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+const JWT_ACCESS_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || '15m';
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
-if (!JWT_ACCESS_SECRET || !JWT_REFRESH_SECRET) {
-    throw new Error('JWT secrets must be configured');
+if (!JWT_ACCESS_SECRET) {
+    throw new Error('JWT_ACCESS_SECRET must be configured in environment variables');
+}
+
+if (!JWT_REFRESH_SECRET) {
+    throw new Error('JWT_REFRESH_SECRET must be configured in environment variables');
+}
+
+if (JWT_ACCESS_SECRET === JWT_REFRESH_SECRET) {
+    throw new Error('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different');
 }
 
 export const authService = {
     async signIn(email: string, password: string, clientInfo: { ip: string; userAgent: string }): Promise<AuthResult> {
         try {
+            // Check rate limit first
+            const rateLimitCheck = await rateLimiterService.checkRateLimit(clientInfo.ip);
+            
+            if (rateLimitCheck.blocked) {
+                auditLog('sign_in', 'blocked', {
+                    reason: 'rate_limit',
+                    ...clientInfo
+                });
+                return {
+                    status: 429,
+                    error: 'Too many attempts. Please try again later.'
+                };
+            }
+
             const user = await prisma.user.findUnique({ where: { email } });
 
             if (!user) {
+                await rateLimiterService.recordFailedAttempt(clientInfo.ip);
                 auditLog('sign_in', 'failure', {
                     reason: 'user_not_found',
                     email,
@@ -30,6 +56,7 @@ export const authService = {
 
             const isValidPassword = await bcrypt.compare(password, user.password);
             if (!isValidPassword) {
+                await rateLimiterService.recordFailedAttempt(clientInfo.ip);
                 auditLog('sign_in', 'failure', {
                     reason: 'invalid_password',
                     userId: user.id,
@@ -53,6 +80,9 @@ export const authService = {
                 };
             }
 
+            // Reset failed attempts on successful login
+            rateLimiterService.resetFailedAttempts(clientInfo.ip);
+
             const accessToken = jwt.sign(
                 {
                     userId: user.id,
@@ -60,7 +90,7 @@ export const authService = {
                     role: user.role
                 },
                 JWT_ACCESS_SECRET,
-                { expiresIn: '15m' }
+                { expiresIn: JWT_ACCESS_EXPIRES_IN } as jwt.SignOptions
             );
 
             const refreshToken = jwt.sign(
@@ -69,7 +99,7 @@ export const authService = {
                     tokenVersion: user.tokenVersion || 0
                 },
                 JWT_REFRESH_SECRET,
-                { expiresIn: '7d' }
+                { expiresIn: JWT_REFRESH_EXPIRES_IN } as jwt.SignOptions
             );
 
             // Store refresh token
@@ -113,6 +143,20 @@ export const authService = {
 
     async refreshAccessToken(refreshToken: string, clientInfo: { ip: string; userAgent: string }): Promise<AuthResult> {
         try {
+            // Check rate limit first
+            const rateLimitCheck = await rateLimiterService.checkRateLimit(clientInfo.ip);
+            
+            if (rateLimitCheck.blocked) {
+                auditLog('refresh_token', 'blocked', {
+                    reason: 'rate_limit',
+                    ...clientInfo
+                });
+                return {
+                    status: 429,
+                    error: 'Too many attempts. Please try again later.'
+                };
+            }
+
             const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as {
                 userId: string;
                 tokenVersion: number;
@@ -123,6 +167,7 @@ export const authService = {
             });
 
             if (!user || !user.isActive || user.tokenVersion !== payload.tokenVersion) {
+                await rateLimiterService.recordFailedAttempt(clientInfo.ip);
                 auditLog('refresh_token', 'failure', {
                     reason: 'invalid_token',
                     userId: payload.userId,
@@ -144,6 +189,7 @@ export const authService = {
             });
 
             if (!storedToken) {
+                await rateLimiterService.recordFailedAttempt(clientInfo.ip);
                 auditLog('refresh_token', 'failure', {
                     reason: 'token_not_found',
                     userId: user.id,
@@ -155,6 +201,9 @@ export const authService = {
                 };
             }
 
+            // Reset failed attempts on successful token refresh
+            rateLimiterService.resetFailedAttempts(clientInfo.ip);
+
             const accessToken = jwt.sign(
                 {
                     userId: user.id,
@@ -162,7 +211,7 @@ export const authService = {
                     role: user.role
                 },
                 JWT_ACCESS_SECRET,
-                { expiresIn: '15m' }
+                { expiresIn: JWT_ACCESS_EXPIRES_IN } as jwt.SignOptions
             );
 
             auditLog('refresh_token', 'success', {
@@ -183,6 +232,7 @@ export const authService = {
             };
         } catch (error) {
             if (error instanceof jwt.JsonWebTokenError) {
+                await rateLimiterService.recordFailedAttempt(clientInfo.ip);
                 auditLog('refresh_token', 'failure', {
                     reason: 'invalid_token_format',
                     ...clientInfo

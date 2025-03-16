@@ -3,10 +3,10 @@ import type { Express, Request, Response, NextFunction } from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import cors from 'cors';
-import { RateLimiterMemory } from 'rate-limiter-flexible';
 import { signInRouter } from '@/routes/auth/sign-in.route';
 import { refreshTokenRouter } from '@/routes/auth/refresh-token.route';
 import { errorLog } from '@/lib/logger.lib';
+import { rateLimiterService } from '@/services/rate-limiter.service';
 
 // Extend Express Request type
 declare global {
@@ -39,30 +39,33 @@ app.use(cors({
     maxAge: 600
 }));
 
-// Rate limiting
-const rateLimiter = new RateLimiterMemory({
-    points: 10,
-    duration: 1,
-    blockDuration: 60 * 15
-});
-
+// Enhanced rate limiting middleware with progressive delays
 app.use(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await rateLimiter.consume(req.ip);
+        const result = await rateLimiterService.checkRateLimit(req.ip || '');
+        
+        if (result.blocked) {
+            return res.status(429).json({
+                success: false,
+                error: 'Too many requests. Please try again later.',
+                code: 'RATE_LIMIT_EXCEEDED'
+            });
+        }
+
+        if (result.delay && result.delay > 0) {
+            await new Promise(resolve => setTimeout(resolve, result.delay));
+        }
+
         next();
-    } catch {
-        res.status(429).json({
-            success: false,
-            error: 'Too many requests. Please try again later.',
-            code: 'RATE_LIMIT_EXCEEDED'
-        });
+    } catch (error) {
+        next(error);
     }
 });
 
 // Client info middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
     req.clientInfo = {
-        ip: req.ip,
+        ip: req.ip || '',
         userAgent: req.get('user-agent') || 'unknown'
     };
     next();
@@ -86,6 +89,24 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
         userAgent: req.get('user-agent')
     });
 
+    // Check if error is from JWT validation
+    if (err.name === 'JsonWebTokenError') {
+        return res.status(401).json({
+            success: false,
+            error: 'Invalid token',
+            code: 'AUTH_INVALID_TOKEN'
+        });
+    }
+
+    // Check if error is from JWT expiration
+    if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({
+            success: false,
+            error: 'Token has expired',
+            code: 'AUTH_TOKEN_EXPIRED'
+        });
+    }
+
     res.status(500).json({
         success: false,
         error: 'An unexpected error occurred',
@@ -101,6 +122,15 @@ app.use((_req: Request, res: Response) => {
         code: 'NOT_FOUND'
     });
 });
+
+// Validate JWT secrets before starting the server
+if (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET) {
+    throw new Error('JWT secrets must be configured in environment variables');
+}
+
+if (process.env.JWT_ACCESS_SECRET === process.env.JWT_REFRESH_SECRET) {
+    throw new Error('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different');
+}
 
 app.listen(port, () => {
     console.log(`⚡️ Server is running at http://localhost:${port}`);

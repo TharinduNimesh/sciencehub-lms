@@ -89,20 +89,33 @@ const authStore = useAuthStore()
 
 // Computed property to filter sections based on user role
 const filteredNavSections = computed(() => {
-  const userRole = authStore.getCurrentUserRole()
-  if (!userRole) return []
+  const user = authStore.user
+  if (!user) return []
   
-  return navSections.filter(section => 
-    section.access && Array.isArray(section.access) && section.access.includes(userRole)
-  )
+  return navSections.filter(section => {
+    // If no access restrictions specified, show the section
+    if (!section.access) return true
+    // Check if user has any of the required roles
+    return section.access.some(role => {
+      const userRoles = user.roles || [user.role]
+      return userRoles.some(userRole => 
+        userRole?.toUpperCase() === role?.toUpperCase()
+      )
+    })
+  })
 })
 
 // Helper function to check access
 const hasAccess = (allowedRoles) => {
-  if (!allowedRoles || !Array.isArray(allowedRoles)) return false
-  const userRole = authStore.getCurrentUserRole()
-  if (!userRole) return false
-  return allowedRoles.includes(userRole)
+  if (!allowedRoles || !Array.isArray(allowedRoles)) return true
+  const user = authStore.user
+  if (!user) return false
+  const userRoles = user.roles || [user.role]
+  return allowedRoles.some(role => 
+    userRoles.some(userRole => 
+      userRole?.toUpperCase() === role?.toUpperCase()
+    )
+  )
 }
 
 const isActiveRoute = (path) => {

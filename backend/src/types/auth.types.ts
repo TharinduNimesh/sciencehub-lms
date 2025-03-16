@@ -12,7 +12,9 @@ export interface AuthenticatedUser {
 }
 
 export interface AuthSuccess {
-    token: string;
+    token?: string;
+    accessToken: string;
+    refreshToken?: string;
     user: AuthenticatedUser;
 }
 

@@ -34,17 +34,15 @@
                     </div>
 
                     <!-- Login Form -->
-                    <UForm :state="formState" @submit="handleLogin" class="space-y-6">
+                    <UForm :schema="signInSchema" :state="formState" @submit="handleLogin" class="space-y-6">
                         <UFormGroup label="Email" name="email">
                             <UInput v-model="formState.email" type="email" placeholder="Enter your email"
-                                icon="i-heroicons-envelope" required />
+                                icon="i-heroicons-envelope" />
                         </UFormGroup>
 
                         <UFormGroup label="Password" name="password">
-                            <UInput v-model="formState.password" :type="showPassword ? 'text' : 'password'"
-                                placeholder="Enter your password"
-                                :icon="showPassword ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'" required
-                                @click:icon="showPassword = !showPassword" />
+                            <UInput v-model="formState.password" placeholder="Enter your password"
+                                icon="i-heroicons-key" :type="showPassword ? 'text' : 'password'" />
                         </UFormGroup>
 
                         <div class="flex items-center justify-between">
@@ -74,25 +72,54 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { Motion } from 'motion-v'
 import PrimaryButton from '@/components/Landing/PrimaryButton.vue'
+import { signInSchema, type SignInFormData } from '@/schemas'
+import { useAuthStore } from '@/stores/auth'
 
-const formState = reactive({
+const router = useRouter()
+const authStore = useAuthStore()
+const toast = useToast()
+
+const formState = reactive<SignInFormData>({
     email: '',
     password: '',
     rememberMe: false
 })
 
-const showPassword = ref(false)
-const isLoading = ref(false)
+const showPassword = ref<boolean>(false)
+const isLoading = ref<boolean>(false)
 
-const handleLogin = async () => {
+const handleLogin = async (event: { data: SignInFormData }) => {
     isLoading.value = true
-    // Add your login logic here
-    await new Promise(resolve => setTimeout(resolve, 1000)) // Simulated delay
-    isLoading.value = false
+    try {
+        const validatedData = signInSchema.parse(event.data)
+        const result = await authStore.signIn({
+            email: validatedData.email,
+            password: validatedData.password
+        })
+
+        if (result.success) {
+            await router.push('/console/dashboard')
+        } else {
+            toast.add({
+                title: 'Sign In Failed',
+                description: result.error || 'Please check your credentials and try again.',
+                color: 'red'
+            })
+        }
+    } catch (error) {
+        console.error('Validation error:', error)
+        toast.add({
+            title: 'Invalid Input',
+            description: 'Please check your input and try again.',
+            color: 'red'
+        })
+    } finally {
+        isLoading.value = false
+    }
 }
 </script>
 

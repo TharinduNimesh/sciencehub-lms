@@ -33,7 +33,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 export const auditLog = (
     action: string, 
-    status: 'success' | 'failure', 
+    status: 'success' | 'failure' | 'blocked', 
     details: Record<string, any>
 ) => {
     logger.info('Auth audit log', {
