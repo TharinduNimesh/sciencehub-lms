@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import type { AuthState, SignInCredentials, AuthResponse } from './types/auth.types'
+import type { AuthState, SignInCredentials, AuthResponse, User } from './types/auth.types'
+import { useApiClient } from '@/composables/useApiClient'
 
 export const useAuthStore = defineStore('auth', {
     state: (): AuthState => ({
@@ -10,12 +11,11 @@ export const useAuthStore = defineStore('auth', {
 
     actions: {
         async signIn(credentials: SignInCredentials) {
-            const config = useRuntimeConfig()
+            const { directFetch } = useApiClient()
             try {
-                const response = await $fetch<AuthResponse>(`${config.public.apiBaseUrl}/api/auth/sign-in`, {
+                const response = await directFetch<AuthResponse>('/api/auth/sign-in', {
                     method: 'POST',
-                    body: credentials,
-                    credentials: 'include'
+                    body: credentials
                 })
 
                 if (response.success && response.user && response.accessToken) {
@@ -37,6 +37,20 @@ export const useAuthStore = defineStore('auth', {
                     code: error.data?.code 
                 }
             }
+        },
+
+        updateUser(user: User | null) {
+            this.user = user
+            this.isAuthenticated = !!user
+        },
+
+        updateAccessToken(token: string) {
+            this.accessToken = token
+        },
+
+        updateSession(user: User | null, accessToken: string) {
+            this.updateUser(user)
+            this.updateAccessToken(accessToken)
         },
 
         clearAuth() {

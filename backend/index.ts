@@ -6,7 +6,6 @@ import cors from 'cors';
 import { signInRouter } from '@/routes/auth/sign-in.route';
 import { refreshTokenRouter } from '@/routes/auth/refresh-token.route';
 import { errorLog } from '@/lib/logger.lib';
-import { rateLimiterService } from '@/services/rate-limiter.service';
 
 // Extend Express Request type
 declare global {
@@ -38,29 +37,6 @@ app.use(cors({
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
     maxAge: 600
 }));
-
-// Enhanced rate limiting middleware with progressive delays
-app.use(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const result = await rateLimiterService.checkRateLimit(req.ip || '');
-        
-        if (result.blocked) {
-            return res.status(429).json({
-                success: false,
-                error: 'Too many requests. Please try again later.',
-                code: 'RATE_LIMIT_EXCEEDED'
-            });
-        }
-
-        if (result.delay && result.delay > 0) {
-            await new Promise(resolve => setTimeout(resolve, result.delay));
-        }
-
-        next();
-    } catch (error) {
-        next(error);
-    }
-});
 
 // Client info middleware
 app.use((req: Request, res: Response, next: NextFunction) => {

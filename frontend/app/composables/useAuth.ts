@@ -1,5 +1,5 @@
-import { useAuthStore } from '@/stores/auth'
-import type { SignInCredentials } from '@/stores/types/auth.types'
+import { useAuthStore } from '~/stores/auth'
+import type { SignInCredentials, User } from '~/stores/types/auth.types'
 
 export const useAuth = () => {
     const authStore = useAuthStore()
@@ -11,7 +11,19 @@ export const useAuth = () => {
 
     const signOut = async () => {
         authStore.clearAuth()
-        await router.push('/auth/sign-in')
+        navigateTo('/auth/sign-in')
+    }
+
+    const updateUser = (user: User | null) => {
+        authStore.updateUser(user)
+    }
+
+    const updateAccessToken = (token: string) => {
+        authStore.updateAccessToken(token)
+    }
+
+    const updateSession = (user: User | null, accessToken: string) => {
+        authStore.updateSession(user, accessToken)
     }
 
     const isAuthenticated = computed(() => authStore.isAuthenticated)
@@ -21,6 +33,9 @@ export const useAuth = () => {
     return {
         signIn,
         signOut,
+        updateUser,
+        updateAccessToken,
+        updateSession,
         isAuthenticated,
         user,
         accessToken

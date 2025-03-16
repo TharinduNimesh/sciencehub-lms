@@ -73,15 +73,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { Motion } from 'motion-v'
 import PrimaryButton from '@/components/Landing/PrimaryButton.vue'
 import { signInSchema, type SignInFormData } from '@/schemas'
 import { useAuthStore } from '@/stores/auth'
+import { useNotification } from '@/composables/useNotification'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const toast = useToast()
+const notification = useNotification()
+const { isAuthenticated } = useAuth()
 
 const formState = reactive<SignInFormData>({
     email: '',
@@ -91,6 +94,12 @@ const formState = reactive<SignInFormData>({
 
 const showPassword = ref<boolean>(false)
 const isLoading = ref<boolean>(false)
+
+onMounted(async () => {
+    if (isAuthenticated.value) {
+        navigateTo('/console/dashboard')
+    }
+})
 
 const handleLogin = async (event: { data: SignInFormData }) => {
     isLoading.value = true
@@ -102,21 +111,14 @@ const handleLogin = async (event: { data: SignInFormData }) => {
         })
 
         if (result.success) {
-            await router.push('/console/dashboard')
+            notification.success('Welcome back!', 'Successfully signed in')
+            navigateTo('/console/dashboard')
         } else {
-            toast.add({
-                title: 'Sign In Failed',
-                description: result.error || 'Please check your credentials and try again.',
-                color: 'red'
-            })
+            notification.error('Sign In Failed', result.error || 'Please check your credentials and try again.')
         }
     } catch (error) {
         console.error('Validation error:', error)
-        toast.add({
-            title: 'Invalid Input',
-            description: 'Please check your input and try again.',
-            color: 'red'
-        })
+        notification.error('Invalid Input', 'Please check your input and try again.')
     } finally {
         isLoading.value = false
     }

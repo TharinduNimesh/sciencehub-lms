@@ -143,8 +143,8 @@ export const authService = {
 
     async refreshAccessToken(refreshToken: string, clientInfo: { ip: string; userAgent: string }): Promise<AuthResult> {
         try {
-            // Check rate limit first
-            const rateLimitCheck = await rateLimiterService.checkRateLimit(clientInfo.ip);
+            // Check rate limit first with refreshToken type
+            const rateLimitCheck = await rateLimiterService.checkRateLimit(clientInfo.ip, 'refreshToken');
             
             if (rateLimitCheck.blocked) {
                 auditLog('refresh_token', 'blocked', {
