@@ -39,6 +39,23 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
+        async signOut() {
+            const { directFetch } = useApiClient()
+            try {
+                await directFetch<{ success: boolean, message: string }>('/api/auth/sign-out', {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+            } catch (error: any) {
+                console.error('Sign out API call failed:', error)
+            } finally {
+                // Always clear auth state and redirect regardless of API response
+                this.clearAuth()
+                navigateTo('/auth/sign-in')
+                return { success: true }
+            }
+        },
+
         updateUser(user: User | null) {
             this.user = user
             this.isAuthenticated = !!user

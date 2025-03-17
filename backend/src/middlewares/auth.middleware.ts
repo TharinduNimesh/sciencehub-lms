@@ -17,7 +17,7 @@ declare global {
 }
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-    const authHeader = req.headers['authorization'];
+    const authHeader = req.headers['authorization'] as string | undefined;
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
@@ -25,7 +25,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-fallback-secret') as JwtPayload;
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as JwtPayload;
         req.user = decoded;
         next();
     } catch (error) {

@@ -3,8 +3,7 @@ import type { Express, Request, Response, NextFunction } from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import cors from 'cors';
-import { signInRouter } from '@/routes/auth/sign-in.route';
-import { refreshTokenRouter } from '@/routes/auth/refresh-token.route';
+import * as ROUTES from '@/routes';
 import { errorLog } from '@/lib/logger.lib';
 
 // Extend Express Request type
@@ -53,8 +52,9 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 // Auth routes
-app.use('/api/auth/sign-in', signInRouter);
-app.use('/api/auth/refresh-token', refreshTokenRouter);
+app.use('/api/auth/sign-in', ROUTES.signInRouter);
+app.use('/api/auth/refresh-token', ROUTES.refreshTokenRouter);
+app.use('/api/auth/sign-out', ROUTES.signOutRouter);
 
 // Error handling
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

@@ -1,5 +1,3 @@
-import { useToast } from '#ui/composables/useToast'
-
 export const useNotification = () => {
   const toast = useToast()
 

@@ -80,7 +80,7 @@
 <script setup>
 import { useSidebarStore } from '~/stores/sidebar'
 import { useAuthStore } from '~/stores/auth'
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { navSections } from '~/config/navigation'
 
 const route = useRoute()
@@ -121,6 +121,13 @@ const hasAccess = (allowedRoles) => {
 const isActiveRoute = (path) => {
   return route.path === path
 }
+
+// Watch for route changes to close sidebar on mobile
+watch(() => route.path, () => {
+  if (sidebarStore.isMobile && sidebarStore.isOpen) {
+    sidebarStore.toggle()
+  }
+})
 
 onMounted(() => {
   sidebarStore.initializeWindowResize()

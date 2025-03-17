@@ -34,7 +34,7 @@ export const authController = {
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'strict',
                 maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-                path: '/api/auth/refresh-token' // Restrict cookie to refresh token endpoint
+                path: '/api/auth' // Restrict cookie to refresh token endpoint
             });
 
             // Return success response with access token
@@ -112,6 +112,56 @@ export const authController = {
                 success: false,
                 error: 'Token refresh failed',
                 code: 'AUTH_REFRESH_ERROR'
+            });
+        }
+    },
+
+    async signOut(req: Request, res: Response) {
+        try {
+            const { refreshToken } = req.cookies;
+            
+            if (!req.user?.userId || !refreshToken) {
+                return res.status(401).json({
+                    success: false,
+                    error: 'Authentication required',
+                    code: 'AUTH_REQUIRED'
+                });
+            }
+
+            const result = await authService.signOut(req.user.userId, refreshToken, req.clientInfo || {
+                ip: req.ip || '',
+                userAgent: req.get('user-agent') || 'unknown'
+            });
+
+            if (!result.success) {
+                return res.status(500).json({
+                    success: false,
+                    error: 'Sign out failed',
+                    code: 'AUTH_SIGN_OUT_ERROR'
+                });
+            }
+
+            // Clear the refresh token cookie
+            res.clearCookie('refreshToken', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                path: '/api/auth/refresh-token'
+            });
+
+            return res.status(200).json({
+                success: true,
+                message: 'Successfully signed out'
+            });
+        } catch (error) {
+            errorLog(error as Error, {
+                action: 'sign_out_controller',
+                ...req.clientInfo
+            });
+            return res.status(500).json({
+                success: false,
+                error: 'Sign out failed',
+                code: 'AUTH_SIGN_OUT_ERROR'
             });
         }
     }

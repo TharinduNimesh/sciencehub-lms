@@ -10,8 +10,11 @@ export const useAuth = () => {
     }
 
     const signOut = async () => {
-        authStore.clearAuth()
-        navigateTo('/auth/sign-in')
+        const result = await authStore.signOut()
+        if (result.success) {
+            navigateTo('/auth/sign-in')
+        }
+        return result
     }
 
     const updateUser = (user: User | null) => {

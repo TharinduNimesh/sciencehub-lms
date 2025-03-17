@@ -28,10 +28,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
 
     try {
-        // Try to refresh the token
+        // Try to refresh the token - removed credentials option since it's already set in useApiClient
         const response = await directFetch<RefreshTokenResponse>('/api/auth/refresh-token', {
-            method: 'POST',
-            credentials: 'include' // Important for cookies
+            method: 'POST'
         })
 
         if (response.success && response.user && response.accessToken) {

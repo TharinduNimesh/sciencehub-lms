@@ -24,10 +24,12 @@
 <script setup>
 import { useSidebarStore } from '~/stores/sidebar'
 import { useAuthStore } from '~/stores/auth'
+import { useAuth } from '~/composables/useAuth'
 import { computed } from 'vue'
 
 const sidebarStore = useSidebarStore()
 const authStore = useAuthStore()
+const { signOut } = useAuth()
 
 // Format the user's role for display
 const formattedRole = computed(() => {
@@ -69,7 +71,7 @@ const menuItems = [
         label: 'Logout',
         icon: 'i-heroicons-arrow-right-on-rectangle-20-solid',
         shortcuts: ['⌘', 'L'],
-        click: () => authStore.logout()
+        click: () => signOut()
     }]
 ]
 </script>

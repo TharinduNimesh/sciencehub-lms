@@ -12,9 +12,9 @@
         'shadow-lg shadow-violet-500/25',
         'transition-all duration-200',
         'hover:from-violet-400 hover:to-indigo-400 hover:shadow-violet-500/40',
-        'disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:shadow-violet-500/25',
+        'disabled:cursor-not-allowed',
+        loading ? 'relative overflow-hidden animate-shimmer before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent' : 'disabled:opacity-70 disabled:hover:shadow-violet-500/25',
         sizeClasses[size],
-        { 'animate-pulse': loading }
       ]"
       :disabled="disabled || loading"
       v-bind="$attrs"

@@ -252,5 +252,35 @@ export const authService = {
                 error: 'Token refresh failed'
             };
         }
+    },
+
+    async signOut(userId: string, refreshToken: string, clientInfo: { ip: string; userAgent: string }): Promise<{ success: boolean }> {
+        try {
+            const result = await prisma.refreshToken.updateMany({
+                where: {
+                    userId,
+                    token: refreshToken,
+                    revoked: false
+                },
+                data: {
+                    revoked: true,
+                    revokedAt: new Date()
+                }
+            });
+
+            auditLog('sign_out', 'success', {
+                userId,
+                ...clientInfo
+            });
+
+            return { success: true };
+        } catch (error) {
+            errorLog(error as Error, {
+                action: 'sign_out',
+                userId,
+                ...clientInfo
+            });
+            return { success: false };
+        }
     }
 };
