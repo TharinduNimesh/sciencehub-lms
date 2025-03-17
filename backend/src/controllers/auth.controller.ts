@@ -34,7 +34,7 @@ export const authController = {
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'strict',
                 maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-                path: '/api/auth' // Restrict cookie to refresh token endpoint
+                path: '/api/auth' // Restrict cookie to auth endpoint
             });
 
             // Return success response with access token
@@ -88,7 +88,7 @@ export const authController = {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === 'production',
                     sameSite: 'strict',
-                    path: '/api/auth/refresh-token'
+                    path: '/api/auth'
                 });
 
                 return res.status(result.status).json({

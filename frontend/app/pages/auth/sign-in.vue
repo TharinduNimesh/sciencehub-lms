@@ -15,12 +15,12 @@
             :transition="{ type: 'spring', stiffness: 50, damping: 15 }" class="w-full max-w-md z-10">
             <!-- Branding Outside Card -->
             <div class="text-center mb-6 mx-4">
-                <div class="flex items-center justify-center space-x-3 mb-4">
+                <NuxtLink to="/" class="flex items-center justify-center space-x-3 mb-4">
                     <img src="/logo.png" alt="ScienceLab Logo" class="h-10 w-auto">
                     <span class="font-bold text-2xl text-gray-600">SCIENCE<span
                             class="bg-gradient-to-r from-violet-400 via-fuchsia-300 to-indigo-300 text-transparent bg-clip-text">LAB</span>
                     </span>
-                </div>
+                </NuxtLink>
             </div>
 
             <div class="mx-4">

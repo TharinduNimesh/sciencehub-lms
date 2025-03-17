@@ -22,17 +22,31 @@
       recordings, interactive quizzes, and earn Science Stars.
     </div>
     <div class="flex items-center gap-4 pt-2">
-      <PrimaryButton size="lg">
-        <template #icon-right>
-          <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-          </svg>
-        </template>
-        Join Now
-      </PrimaryButton>
-      <NuxtLink to="/auth/sign-in">
-        <SecondaryButton size="lg">Sign In</SecondaryButton>
-      </NuxtLink>
+      <template v-if="!isAuthenticated">
+        <PrimaryButton size="lg">
+          <template #icon-right>
+            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </template>
+          Join Now
+        </PrimaryButton>
+        <NuxtLink to="/auth/sign-in">
+          <SecondaryButton size="lg">Sign In</SecondaryButton>
+        </NuxtLink>
+      </template>
+      <template v-else>
+        <NuxtLink to="/console/dashboard">
+          <PrimaryButton size="lg">
+            <template #icon-right>
+              <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </template>
+            Go to Dashboard
+          </PrimaryButton>
+        </NuxtLink>
+      </template>
     </div>
   </Motion>
 </template>
@@ -41,4 +55,7 @@
 import { Motion } from "motion-v";
 import PrimaryButton from "@/components/Landing/PrimaryButton.vue";
 import SecondaryButton from "@/components/Landing/SecondaryButton.vue";
+import { useAuth } from '@/composables/useAuth'
+
+const { isAuthenticated } = useAuth()
 </script>

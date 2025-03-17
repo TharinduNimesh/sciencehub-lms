@@ -27,13 +27,17 @@
         </div>
 
         <div class="flex items-center space-x-4">
-          <NuxtLink to="/auth/sign-in">
-            <SecondaryButton size="sm">Sign In</SecondaryButton>
-          </NuxtLink>
-
-          <PrimaryButton size="sm">
-            Join Now
-          </PrimaryButton>
+          <template v-if="!isAuthenticated">
+            <NuxtLink to="/auth/sign-in">
+              <SecondaryButton size="sm">Sign In</SecondaryButton>
+            </NuxtLink>
+            <PrimaryButton size="sm">Join Now</PrimaryButton>
+          </template>
+          <template v-else>
+            <NuxtLink to="/console/dashboard">
+              <SecondaryButton size="sm">Dashboard</SecondaryButton>
+            </NuxtLink>
+          </template>
         </div>
       </nav>
     </header>
@@ -45,7 +49,9 @@ import { useWindowScroll } from '@vueuse/core'
 import { computed } from 'vue'
 import PrimaryButton from '@/components/Landing/PrimaryButton.vue'
 import SecondaryButton from '@/components/Landing/SecondaryButton.vue'
+import { useAuth } from '@/composables/useAuth'
 
 const { y } = useWindowScroll()
-const isScrolled = computed(() => y.value > 50) // Increased threshold for better effect
+const isScrolled = computed(() => y.value > 50)
+const { isAuthenticated } = useAuth()
 </script>
